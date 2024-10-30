@@ -115,7 +115,7 @@ const VoiceRecordingPage = ({ navigation }) => {
         name: 'recording.m4a',
       });
 
-      const serverUrl = 'http://140.118.145.155:5000/upload_audio';
+      const serverUrl = 'http://***/upload_audio';
       const response = await fetch(serverUrl, {
         method: 'POST',
         body: formData,

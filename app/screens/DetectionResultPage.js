@@ -11,7 +11,7 @@ const DetectionResultPage = ({ navigation }) => {
     // Function to fetch detection results from the server
     const fetchDetectionResult = async () => {
       try {
-        const response = await fetch('http://140.118.145.155:5000/get_binary_classification_result', {
+        const response = await fetch('http://***/get_binary_classification_result', {
           method: 'GET',
         });
 
