@@ -3,7 +3,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import AudioList from '../screens/AudioList';
 import Player from '../screens/Player';
-import Playlist from '../screens/Playlist';
 import AIDetectionScreen from '../screens/AIDetectionScreen';
 import VoiceRecordingPage from '../screens/VoiceRecordingPage';
 import AudioPlaybackPage from '../screens/AudioPlaybackPage';
@@ -11,6 +10,7 @@ import DetectionResultPage from '../screens/DetectionResultPage';
 import DetectionRecordPage from '../screens/DetectionRecordPage'; // Import the DetectionRecordPage
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import Watermark from '../screens/Watermark';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -58,11 +58,11 @@ const TabNavigator = () => {
                 }}
             />
             <Tab.Screen
-                name='Playlist'
-                component={Playlist}
+                name='Watermark'
+                component={Watermark}
                 options={{
                     tabBarIcon: ({ color, size }) => (
-                        <MaterialIcons name="library-music" size={size} color={color} />
+                        <MaterialIcons name="water" size={size} color={color} />
                     ),
                 }}
             />
@@ -97,6 +97,11 @@ const AppNavigator = () => {
                 name="DetectionRecord" 
                 component={DetectionRecordPage} 
                 options={{ title: 'Detection Record' }}
+            />
+            <Stack.Screen 
+                name="Watermark" 
+                component={Watermark} 
+                options={{ title: 'Watermark' }}
             />
         </Stack.Navigator>
     );

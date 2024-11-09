@@ -2,7 +2,9 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 const DetectionRecordPage = ({ route, navigation }) => {
-  const { realPercentage, fakePercentage } = route.params;
+  // Ensure props are provided, or default to 0 if missing
+  const realPercentage = route.params?.realPercentage ?? 0;
+  const fakePercentage = route.params?.fakePercentage ?? 0;
 
   return (
     <View style={styles.container}>

@@ -1,15 +1,14 @@
-// VoiceRecordingPage.js
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Audio } from 'expo-av';
 
 const VoiceRecordingPage = ({ navigation }) => {
-  const [recording, setRecording] = useState();
+  const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordedUri, setRecordedUri] = useState(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [sound, setSound] = useState();
+  const [sound, setSound] = useState(null);
 
   useEffect(() => {
     requestPermissions();
@@ -27,6 +26,15 @@ const VoiceRecordingPage = ({ navigation }) => {
     return () => clearInterval(timer);
   }, [isRecording, isPaused]);
 
+  useEffect(() => {
+    // Stop the audio when navigating away from this screen
+    const unsubscribe = navigation.addListener('blur', () => {
+      stopAudioPlayback();
+    });
+
+    return unsubscribe;
+  }, [navigation, sound]);
+
   const requestPermissions = async () => {
     const { status } = await Audio.requestPermissionsAsync();
     if (status !== 'granted') {
@@ -34,26 +42,34 @@ const VoiceRecordingPage = ({ navigation }) => {
     }
   };
 
-  const onRecordingStatusUpdate = (status) => {
-    if (status.isDoneRecording) {
-      setIsRecording(false);
-      setIsPaused(false);
-      console.log('Recording finished');
-    }
-  };
-
   const startRecording = async () => {
     try {
-      console.log('Requesting permissions..');
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
-      console.log('Starting recording..');
 
       const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        onRecordingStatusUpdate
+        {
+          android: {
+            extension: '.m4a',
+            outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
+            audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_AAC,
+            sampleRate: 44100,
+            numberOfChannels: 2,
+            bitRate: 128000,
+          },
+          ios: {
+            extension: '.caf',
+            audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
+            sampleRate: 44100,
+            numberOfChannels: 1,
+            bitRate: 128000,
+            linearPCMBitDepth: 16,
+            linearPCMIsBigEndian: false,
+            linearPCMIsFloat: false,
+          },
+        }
       );
       setRecording(recording);
       setIsRecording(true);
@@ -72,6 +88,7 @@ const VoiceRecordingPage = ({ navigation }) => {
     await recording.stopAndUnloadAsync();
     const uri = recording.getURI();
     setRecordedUri(uri);
+    setRecording(null);
     console.log('Recording URI:', uri);
   };
 
@@ -106,16 +123,16 @@ const VoiceRecordingPage = ({ navigation }) => {
       Alert.alert('Error', 'No recording found to send.');
       return;
     }
-
+  
     try {
       const formData = new FormData();
       formData.append('audio', {
         uri: recordedUri,
-        type: 'audio/m4a',
-        name: 'recording.m4a',
+        type: 'audio/wav', // Ensure server expects this format
+        name: 'recording.wav',
       });
-
-      const serverUrl = 'http://***/upload_audio';
+  
+      const serverUrl = 'path/of/server/url';
       const response = await fetch(serverUrl, {
         method: 'POST',
         body: formData,
@@ -123,20 +140,26 @@ const VoiceRecordingPage = ({ navigation }) => {
           'Content-Type': 'multipart/form-data',
         },
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to send audio to server');
       }
-
+  
       const data = await response.json();
-      const realPercentage = (data.result_binary[1] ?? 0) * 100;
-      const fakePercentage = (data.result_binary[0] ?? 0) * 100;
-
-      // Navigate to DetectionRecordPage with the results
-      navigation.navigate('DetectionRecord', {
-        realPercentage,
-        fakePercentage,
-      });
+  
+      if (data.result_binary && data.result_binary.length === 2) {
+        const realPercentage = (data.result_binary[1] ?? 0) * 100;
+        const fakePercentage = (data.result_binary[0] ?? 0) * 100;
+  
+        // Stop audio playback and navigate to DetectionRecordPage with real and fake percentages
+        stopAudioPlayback();
+        navigation.navigate('DetectionRecord', {
+          realPercentage,
+          fakePercentage,
+        });
+      } else {
+        Alert.alert('Error', 'Unexpected response format from the server.');
+      }
     } catch (error) {
       console.error('Error sending audio to server:', error);
       Alert.alert('Error', 'Failed to send audio to server.');
@@ -146,14 +169,22 @@ const VoiceRecordingPage = ({ navigation }) => {
   const playAudio = async () => {
     if (recordedUri) {
       try {
-        const { sound } = await Audio.Sound.createAsync({ uri: recordedUri });
-        setSound(sound);
+        const { sound: playbackSound } = await Audio.Sound.createAsync({ uri: recordedUri });
+        setSound(playbackSound);
         console.log('Playing audio...');
-        await sound.playAsync();
+        await playbackSound.playAsync();
       } catch (error) {
         console.error('Error playing audio:', error);
         Alert.alert('Error', 'Failed to play the recording.');
       }
+    }
+  };
+
+  const stopAudioPlayback = async () => {
+    if (sound) {
+      await sound.stopAsync();
+      setSound(null);
+      console.log('Audio playback stopped');
     }
   };
 
@@ -180,9 +211,14 @@ const VoiceRecordingPage = ({ navigation }) => {
         </TouchableOpacity>
       )}
       {recordedUri && (
-        <TouchableOpacity style={styles.playButton} onPress={playAudio}>
-          <Text style={styles.buttonText}>Play</Text>
-        </TouchableOpacity>
+        <>
+          <TouchableOpacity style={styles.playButton} onPress={playAudio}>
+            <Text style={styles.buttonText}>Play</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.stopButton} onPress={stopAudioPlayback}>
+            <Text style={styles.buttonText}>Stop</Text>
+          </TouchableOpacity>
+        </>
       )}
       <TouchableOpacity style={styles.detectButton} onPress={sendAudioToServer}>
         <Text style={styles.buttonText}>Detect</Text>

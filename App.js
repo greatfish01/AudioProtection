@@ -3,14 +3,16 @@ import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './app/navigation/AppNavigator';
 import { AudioProvider } from './app/context/AudioProvider';
-
+import { SingleAudioProvider } from './app/context/SingleAudioProvider';
 
 export default function App() {
     return (
         <AudioProvider>
-            <NavigationContainer>
-                <AppNavigator/>
-            </NavigationContainer>
+            <SingleAudioProvider>
+                <NavigationContainer>
+                    <AppNavigator />
+                </NavigationContainer>
+            </SingleAudioProvider>
         </AudioProvider>
     );
 }

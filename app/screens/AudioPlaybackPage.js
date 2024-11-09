@@ -1,3 +1,4 @@
+// AudioPlaybackPage.js
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Audio } from 'expo-av';
@@ -5,13 +6,13 @@ import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { AudioContext } from '../context/AudioProvider';
 import color from '../misc/color';
 import * as FileSystem from 'expo-file-system';
-import * as mime from 'mime'; // To dynamically determine MIME types
+import * as mime from 'mime';
 
 const AudioPlaybackPage = ({ navigation }) => {
   const [sound, setSound] = useState();
   const [isPlaying, setIsPlaying] = useState(false);
   const route = useRoute();
-  const { uri } = route.params; // The URI of the selected audio file from the audio list
+  const { uri } = route.params;
   const { audioFiles } = useContext(AudioContext);
 
   useEffect(() => {
@@ -41,7 +42,7 @@ const AudioPlaybackPage = ({ navigation }) => {
       loadAndPlay();
     }
 
-    return () => (sound ? sound.unloadAsync() : undefined); // Cleanup on unmount
+    return () => (sound ? sound.unloadAsync() : undefined);
   }, [uri]);
 
   useFocusEffect(
@@ -67,46 +68,46 @@ const AudioPlaybackPage = ({ navigation }) => {
 
   const saveAndUploadAudio = async () => {
     try {
-      // File URI from the recorded audio
       const fileUri = uri;
-
-      // Validate that the file exists
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (!fileInfo.exists) {
         throw new Error("File does not exist");
       }
 
-      // Create a FormData object to upload the file directly
       const formData = new FormData();
       formData.append("audio", {
         uri: fileUri,
-        name: fileUri.split('/').pop(), // Extracts the filename
-        type: mime.getType(fileUri) || 'audio/wav', // Dynamically determine MIME type
+        name: fileUri.split('/').pop(),
+        type: mime.getType(fileUri) || 'audio/wav',
       });
 
-      // Set up the request
-      const settings = {
+      const serverUrl = "path/of/server/url";
+      const response = await fetch(serverUrl, {
         method: "POST",
         body: formData,
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      };
+      });
 
-      const serverUrl = "http://140.118.145.155:5000/upload_audio";
-      const serverResponse = await fetch(serverUrl, settings);
-
-      if (!serverResponse.ok) {
+      if (!response.ok) {
         throw new Error('Network response was not ok');
       }
 
-      const data = await serverResponse.json();
+      const data = await response.json();
 
-      // Navigate to DetectionResultPage with the received data
-      navigation.navigate('DetectionResult', {
-        realPercentage: data.realPercentage,
-        fakePercentage: data.fakePercentage,
-      });
+      if (data.result_binary && data.result_binary.length === 2) {
+        const realPercentage = (data.result_binary[1] ?? 0) * 100;
+        const fakePercentage = (data.result_binary[0] ?? 0) * 100;
+
+        // Navigate to DetectionResultPage directly with results
+        navigation.navigate('DetectionResult', {
+          realPercentage,
+          fakePercentage,
+        });
+      } else {
+        Alert.alert('Error', 'Unexpected response format from the server.');
+      }
     } catch (error) {
       console.error('Error sending audio to server:', error);
       Alert.alert('Error', 'Failed to send audio to server.');

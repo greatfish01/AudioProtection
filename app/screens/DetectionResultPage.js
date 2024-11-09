@@ -1,48 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import color from '../misc/color';
+// DetectionResultPage.js
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-const DetectionResultPage = ({ navigation }) => {
-  const [realPercentage, setRealPercentage] = useState(null);
-  const [fakePercentage, setFakePercentage] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Function to fetch detection results from the server
-    const fetchDetectionResult = async () => {
-      try {
-        const response = await fetch('http://***/get_binary_classification_result', {
-          method: 'GET',
-        });
-
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-
-        const data = await response.json();
-
-        // Set the state with the fetched data, multiplying by 100 to convert to percentage
-        setRealPercentage((data.real ?? 0) * 100);
-        setFakePercentage((data.fake ?? 0) * 100);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching detection result:', error);
-        Alert.alert('Error', 'Failed to fetch detection result from the server.');
-        setIsLoading(false);
-      }
-    };
-
-    fetchDetectionResult();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={styles.loadingText}>Loading detection results...</Text>
-      </View>
-    );
-  }
+const DetectionResultPage = ({ route, navigation }) => {
+  const { realPercentage, fakePercentage } = route.params;
 
   return (
     <View style={styles.container}>
@@ -61,7 +22,6 @@ const DetectionResultPage = ({ navigation }) => {
           </Text>
         </View>
       </View>
-      <Text style={styles.checkVoiceText}>Please check your other voice recordings</Text>
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.buttonText}>Back</Text>
       </TouchableOpacity>
@@ -75,10 +35,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
-  },
-  loadingText: {
-    fontSize: 18,
-    marginTop: 10,
   },
   resultText: {
     fontSize: 28,
@@ -105,10 +61,6 @@ const styles = StyleSheet.create({
   boxPercentage: {
     fontSize: 20,
     marginTop: 10,
-  },
-  checkVoiceText: {
-    fontSize: 18,
-    marginVertical: 10,
   },
   backButton: {
     backgroundColor: '#2196F3',
