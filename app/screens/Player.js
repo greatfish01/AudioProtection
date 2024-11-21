@@ -129,7 +129,7 @@ const Player = () => {
                 name: isRecorded ? 'recorded_audio.wav' : 'uploaded_audio.wav',
             });
 
-            const response = await fetch('path/to/server', {
+            const response = await fetch('http://140.118.145.242:5000/attack', {
                 method: 'POST',
                 body: formData,
                 headers: { 'Accept': 'application/json' },

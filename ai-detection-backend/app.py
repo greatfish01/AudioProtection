@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify, send_file, url_for, make_response
 from flask_cors import CORS
 import numpy as np
 import uuid
-from eval import main  
+from eval import main  # Assuming `main` is a function in `eval` that returns classification results
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -17,6 +17,7 @@ PROCESSED_FOLDER = 'generate'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 
+# Dictionary to store classification results
 classification_results = {
     "last_filename": None,
     "last_binary_result": None
@@ -63,17 +64,20 @@ def upload_audio():
     audio_file.save(file_path)
     print(f"File saved at {file_path}")
 
+    # Convert file to WAV format if it's not already a WAV
     if not file_path.endswith('.wav'):
         try:
             file_path = convert_to_wav(file_path)
         except Exception as e:
             return jsonify({'error': f'File conversion failed: {str(e)}'}), 500
 
-    model_path = "path/to/the/model"
+    # Run classification on the converted WAV file
+    model_path = "D://07. 專題//ai-detection//model.pth"
     try:
         result_multi, result_binary = main(file_path, model_path)
         result = {'result_multi': result_multi, 'result_binary': result_binary}
         
+        # Store the binary result in the classification_results dictionary
         classification_results["last_filename"] = audio_file.filename
         classification_results["last_binary_result"] = result_binary
 
@@ -85,6 +89,7 @@ def upload_audio():
 
 @app.route('/get_binary_classification_result', methods=['GET'])
 def get_binary_classification_result():
+    # Retrieve the binary classification result from the last uploaded audio
     result_binary = classification_results.get("last_binary_result")
     if result_binary is None:
         return jsonify({'error': 'No binary classification result found. Please upload an audio file first.'}), 404
@@ -185,8 +190,8 @@ def get_audio(filename):
     output_file = os.path.join(PROCESSED_FOLDER, filename)
     if os.path.exists(output_file):
         response = make_response(send_file(output_file, download_name=filename, mimetype='audio/wav'))
-        response.headers['Access-Control-Allow-Origin'] = '*'  
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'  
+        response.headers['Access-Control-Allow-Origin'] = '*'  # Ensure CORS headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'  # Disable caching
         return response
     return jsonify({'message': 'No output file found.'}), 404
 
