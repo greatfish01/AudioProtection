@@ -66,7 +66,6 @@ project-root/
 AudioProtection is a comprehensive system designed to safeguard audio files using advanced protection mechanisms. It includes features like encryption, watermarking, and AI-powered detection for unauthorized access. The project leverages modern technologies, frameworks, and AI models to ensure robust security.
 
 ## System Source Code
-## System Source Code
 
 The system is structured as follows:
 
