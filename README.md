@@ -257,7 +257,7 @@ The **LibriSeVoc** dataset is used to train and evaluate the model:
   - Raw waveforms or preprocessed audio files.
 - **Output**:
   - Adversarially perturbed audio files, saved in WAV format.
-  - 
+  
 ### 3. Audio Watermarking
 
 ## software-development-tools
