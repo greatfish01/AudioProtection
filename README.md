@@ -216,8 +216,8 @@ These libraries and tools are used across both the backend and frontend for deve
 - **Output**:
   - Binary classification (`Real` or `Fake`) and multi-class classification (e.g., `Real`, `WaveNet`, `HiFi-GAN`, etc.).
 
-#### Dataset
-##### **LibriSeVoc**
+### Dataset
+#### **LibriSeVoc**
 The **LibriSeVoc** dataset is used to train and evaluate the model:
 - **Real Audio**:
   - Contains genuine human speech samples from the LibriTTS corpus.
@@ -228,10 +228,10 @@ The **LibriSeVoc** dataset is used to train and evaluate the model:
   - Validation Set
   - Test Set
 
-###### **Training Process**:
+### **Training Process**:
 - Training is conducted using the `main.py` script:
   ```bash
-  python main.py --data_path /your/path/to/LibriSeVoc/ --model_save_path /your/path/to/models/ 
+  python main.py --data_path /your/path/to/LibriSeVoc/ --model_save_path /your/path/to/models/ ```
 
 ### **2. Wav2Vec2-Based Model**
 - **Purpose**: Uses pre-trained Wav2Vec2 embeddings for enhanced detection accuracy.
