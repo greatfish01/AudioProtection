@@ -76,6 +76,10 @@ The backend is responsible for AI-based audio detection and protection, includin
   - `app.py`: The Flask API that exposes the backend functionalities, such as audio detection and processing.
   - `model.pth`: The pretrained PyTorch model used for inference.
   - `model.py`: Script defining the architecture and logic for the AI model.
+  - `main.py`: Entry point for training the AI model. It includes:
+    - Dataset preparation using `Dataset_LibriSeVoc`
+    - Training and evaluation loops for multi-class and binary classification
+    - The ability to save the best-performing model
   - `core_scripts/`: Contains core functionality, such as:
     - `config_parse/`: Parses configuration files.
     - `data_io/`: Handles dataset input/output operations.
@@ -93,17 +97,24 @@ The frontend is built with React Native and provides the user interface for inte
 - **Key Components**:
   - **`components/`**: Reusable UI components.
     - `AudioListItem.js`: Displays individual audio items in a list.
+    - `Screen.js`: A base screen component for consistent styling and layout.
   - **`context/`**: Manages application-wide state using React Context API.
     - `AudioProvider.js`: Provides context for managing multiple audio files.
     - `SingleAudioProvider.js`: Manages state for a single audio file.
+  - **`misc/`**: Contains miscellaneous utilities.
+    - `color.js`: Centralized color definitions for consistent theming across the app.
   - **`navigation/`**: Configures app navigation.
     - `AppNavigator.js`: Sets up the navigation stack for the app.
   - **`screens/`**: Individual app screens for different functionalities.
     - `AIDetectionScreen.js`: Displays AI detection results.
     - `AudioList.js`: Shows a list of uploaded or processed audio files.
     - `AudioPlaybackPage.js`: Plays audio files with detection details.
-    - `VoiceRecordingPage.js`: Allows users to record audio for analysis.
-    - `WatermarkScreen.tsx`: Handles audio watermarking features.
+    - `DetectionRecordPage.js`: Allows users to record audio for detection purposes.
+    - `DetectionResultPage.js`: Displays the results of AI detection.
+    - `Player.js`: Provides audio playback features.
+    - `VoiceRecordingPage.js`: Allows users to record and save audio for analysis.
+    - `Watermark.js`: Manages the watermarking process for audio files.
+    - `WatermarkScreen.tsx`: Screen interface for handling audio watermarking.
   - **`assets/`**: Contains static files, such as icons and images.
 
 ### **3. assets**
@@ -186,7 +197,6 @@ The frontend, built with React Native and Expo, relies on the following librarie
 These libraries and tools are used across both the backend and frontend for development and testing.
 
 - **[Git](https://git-scm.com/)**: Version control system for tracking changes in source code.
-- **[Docker](https://www.docker.com/)**: Containerization tool for creating isolated environments.
 - **[Postman](https://www.postman.com/)**: API testing and debugging tool.
 - **[Babel](https://babeljs.io/)**: JavaScript compiler for transpiling modern JavaScript code.
 - **[TypeScript](https://www.typescriptlang.org/)**: Ensures strong typing and reduces runtime errors in the frontend.
