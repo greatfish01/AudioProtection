@@ -320,7 +320,7 @@ python app.py
 Run the Expo Development server:
 ```bash
 npx expo start
-
+  ```
 #### Step 5: Run the App on Expo Go
 Scan the QR Code given from the command prompt
 The app will automatically load and run on your mobile device
