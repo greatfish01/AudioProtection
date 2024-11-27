@@ -351,7 +351,7 @@ The app will automatically load and run on your mobile device
 
 ## License
 
-###1. AI-Detection Model
+### 1. AI-Detection Model
 This Model is based on the [Synthetic-Voice-Detection-Vocoder-Artifacts](https://github.com/csun22/Synthetic-Voice-Detection-Vocoder-Artifacts) repository, which is licensed under the **MIT License**. 
 
 #### MIT License Summary:
