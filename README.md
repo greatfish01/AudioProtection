@@ -204,9 +204,7 @@ These libraries and tools are used across both the backend and frontend for deve
 
 ## AI-model-details
 
-### 1. AI Detection Model
-
-#### **RawNet2-Based Model**
+### 1. **RawNet2-Based Model**
 - **Purpose**:
   - Utilizes raw audio waveforms to detect vocoder artifacts in synthetic audio.
 - **Architecture**:
