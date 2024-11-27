@@ -303,19 +303,19 @@ Clone the project repository to your local machine:
 ```bash
 git clone https://github.com/<your-repo-name>.git
 cd <your-project-folder>
-
+  ```
 #### Step 2: Install Dependencies
 
 Install the required dependencies for the react native frontend
 ```bash
 npm install
-
+  ```
 #### Step 3: Set up the AI-Backend
 Start the Flask server in another command prompt to handle audio detection:
 ```bash
 cd ai-detection-backend
 python app.py
-
+  ```
 #### Step 4: Start the Development Server
 Run the Expo Development server:
 ```bash
