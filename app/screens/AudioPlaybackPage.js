@@ -6,7 +6,7 @@ import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { AudioContext } from '../context/AudioProvider';
 import color from '../misc/color';
 import * as FileSystem from 'expo-file-system';
-import * as mime from 'mime';
+import mime from 'mime-types';
 
 const AudioPlaybackPage = ({ navigation }) => {
   const [sound, setSound] = useState();
@@ -78,10 +78,9 @@ const AudioPlaybackPage = ({ navigation }) => {
       formData.append("audio", {
         uri: fileUri,
         name: fileUri.split('/').pop(),
-        type: mime.getType(fileUri) || 'audio/wav',
+        type: mime.lookup(fileUri) || 'audio/wav',
       });
-
-      const serverUrl = "http://140.118.145.242:5000/upload_audio";
+      const serverUrl = "http://140.118.145.106:5000/upload_audio";
       const response = await fetch(serverUrl, {
         method: "POST",
         body: formData,

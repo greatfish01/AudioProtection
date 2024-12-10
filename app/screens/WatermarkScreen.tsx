@@ -18,6 +18,7 @@ export default function AudioRecorder() {
   const [isFileSelected, setIsFileSelected] = useState(false);
   const [isUploadButtonDisabled, setIsUploadButtonDisabled] = useState(false);
   const recordingRef = useRef(null);
+  const soundRef = useRef(null);
 
   const startRecording = async () => {
     try {
@@ -26,16 +27,38 @@ export default function AudioRecorder() {
         showAlert('Permission Denied', 'Permission to access microphone is required.');
         return;
       }
-
+  
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
-
-      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+  
+      const recordingOptions = {
+        android: {
+          extension: '.wav',
+          outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_DEFAULT,
+          audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_DEFAULT,
+          sampleRate: 44100,
+          numberOfChannels: 1, // Ensure single channel (mono)
+          bitRate: 128000,
+        },
+        ios: {
+          extension: '.wav',
+          outputFormat: Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_LINEARPCM,
+          audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
+          sampleRate: 44100,
+          numberOfChannels: 1, // Ensure single channel (mono)
+          bitRate: 128000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+      };
+      
+  
+      const { recording } = await Audio.Recording.createAsync(recordingOptions);
       recordingRef.current = recording;
       setIsRecording(true);
-      setIsUploadButtonDisabled(true);
     } catch (error) {
       showAlert('Error', 'Error accessing microphone.');
       console.error('Error accessing microphone:', error);
@@ -48,12 +71,35 @@ export default function AudioRecorder() {
     try {
       await recordingRef.current.stopAndUnloadAsync();
       const uri = recordingRef.current.getURI();
-      setRecordedAudio({ uri });
+      if (uri) {
+        setRecordedAudio({ uri });
+        setSelectedFile({ uri, name: `recorded_audio_${Date.now()}.wav` });
+        setIsFileSelected(true);
+      }
       setIsRecording(false);
-      setIsUploadButtonDisabled(false);
     } catch (error) {
       console.error('Error stopping recording:', error);
       showAlert('Error', 'Could not stop recording');
+    }
+  };
+
+  const playRecordedAudio = async () => {
+    if (!recordedAudio?.uri) {
+      showAlert('No Recording', 'Please record audio before playing.');
+      return;
+    }
+
+    try {
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+      }
+
+      const { sound } = await Audio.Sound.createAsync({ uri: recordedAudio.uri });
+      soundRef.current = sound;
+      await sound.playAsync();
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      showAlert('Error', 'Could not play recorded audio.');
     }
   };
 
@@ -61,67 +107,118 @@ export default function AudioRecorder() {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: 'audio/*',
+        multiple: false,
       });
 
-      if (result.type !== 'cancel') {
-        const fileDetails = result;
+      if (!result.canceled) {
+        const file = result.assets ? result.assets[0] : result;
+        const { uri, name } = file;
+
+        if (!uri) {
+          showAlert('Error', 'No URI found for the selected file.');
+          return;
+        }
+
+        const originalName = name ? decodeURIComponent(name) : `audio_${Date.now()}.wav`;
+
         setSelectedFile({
-          uri: fileDetails.uri,
-          name: fileDetails.name || 'Unnamed file',  // Default to "Unnamed file" if name is undefined
-          size: fileDetails.size ?? 0,
+          uri: uri,
+          name: originalName,
+          size: file.size ?? 0,
         });
         setIsFileSelected(true);
+        console.log('File selected:', originalName);
       } else {
         showAlert('Upload cancelled', 'No file selected.');
       }
     } catch (err) {
       console.error('Error picking file:', err);
+      showAlert('Error', 'An error occurred while picking the file.');
     }
   };
 
-  const handleAddWatermark = () => {
-    if (!selectedFile && !recordedAudio) {
-      showAlert('No file selected', 'Please select or record audio before adding a watermark.');
-      return;
-    }
-
-    const fileName = selectedFile ? selectedFile.name : 'recorded audio';
-    showAlert('Add Watermark', `Watermark added, file name: watermarked_${fileName}`);
-    resetState();
-  };
-
-  const handleDetectWatermarkFromFile = async () => {
+  const handleAddWatermark = async () => {
     try {
-      // Check if selectedFile and its name exist
-      if (selectedFile && selectedFile.name) {
-        console.log('File name:', selectedFile.name);
+      if (!selectedFile) {
+        showAlert('No file selected', 'Please select an audio file before adding a watermark.');
+        return;
+      }
 
-        if (selectedFile.name.includes('watermarked')) {
-          showAlert('Watermark Detection', 'Watermark detected');
-        } else {
-          showAlert('Watermark Detection', 'No watermark detected');
-        }
-        resetState();
-      } else {
+      const formData = new FormData();
+      formData.append('audio', {
+        uri: selectedFile.uri,
+        type: 'audio/wav',
+        name: selectedFile.name,
+      });
+
+      const response = await fetch('http://140.118.145.106:5000/generate', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (!response.ok) {
+        const errorResponse = await response.json();
+        showAlert('Error', errorResponse.error || 'Failed to add watermark.');
+        return;
+      }
+
+      const data = await response.json();
+      if (!data.filePath) {
+        showAlert('Error', 'Watermark generation failed. No file path returned.');
+        return;
+      }
+
+      console.log('Watermark added: ', data.filePath);
+      showAlert('Success', 'Watermark added successfully!');
+      setSelectedFile({
+        uri: data.filePath,
+        name: `watermarked_${selectedFile.name}`,
+      });
+    } catch (error) {
+      console.error('Error adding watermark:', error);
+      showAlert('Error', 'An error occurred while adding watermark.');
+    }
+  };
+
+  const handleDetectWatermark = async () => {
+    try {
+      if (!selectedFile) {
         showAlert('No file selected', 'Please select an audio file before detecting a watermark.');
+        return;
       }
-    } catch (error) {
-      console.error('Error detecting watermark from file:', error);
-      showAlert('Error', 'An error occurred while detecting watermark');
-    }
-  };
 
-  const handleDetectWatermarkFromRecording = () => {
-    try {
-      if (recordedAudio) {
-        showAlert('Watermark Detection', 'No watermark detected');
-      } else {
-        showAlert('No audio recorded', 'Please record audio before detecting a watermark.');
+      const formData = new FormData();
+      formData.append('audio', {
+        uri: selectedFile.uri,
+        type: 'audio/wav',
+        name: selectedFile.name,
+      });
+
+      const response = await fetch('http://140.118.145.106:5000/detect', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (!response.ok) {
+        const errorResponse = await response.json();
+        showAlert('Error', errorResponse.error || 'Failed to detect watermark.');
+        return;
       }
-      resetState();
+
+      const result = await response.json();
+      const detected = result.watermark_detected ? 'Watermark detected' : 'No watermark detected';
+      // const message = result.message ? `Message: ${result.message}` : 'No message available';
+      console.log('Watermark detection result: ', detected);
+      showAlert('Detection Result', `${detected}`);
     } catch (error) {
-      console.error('Error detecting watermark from recording:', error);
-      showAlert('Error', 'An error occurred while detecting watermark');
+      console.error('Error detecting watermark:', error);
+      showAlert('Error', 'An error occurred while detecting watermark.');
     }
   };
 
@@ -131,12 +228,39 @@ export default function AudioRecorder() {
     setRecordedAudio(null);
     setIsUploadButtonDisabled(false);
     setIsRecording(false);
+    if (soundRef.current) {
+      soundRef.current.unloadAsync();
+    }
+    console.log('Session has been reset.');
   };
 
-  return (
+    return (
     <View style={styles.container}>
       <Text style={styles.title}>Watermark Add & Detect</Text>
       <View style={styles.card}>
+        {/* Recording Buttons */}
+        <TouchableOpacity
+          onPress={isRecording ? stopRecording : startRecording}
+          style={[
+            styles.button,
+            isRecording ? { backgroundColor: '#dc3545' } : { backgroundColor: '#007bff' },
+            ]}>
+          <Text style={styles.buttonText}>{isRecording ? 'Stop Recording' : 'Start Recording'}</Text>
+        </TouchableOpacity>
+
+        {recordedAudio && (
+          <View>
+            <TouchableOpacity
+
+              onPress={playRecordedAudio}
+              style={[styles.button, { backgroundColor: '#5cb85c' }]}
+            >
+              <Text style={styles.buttonText}>Play Recorded Audio</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* File Upload & Watermark Section */}
         <TouchableOpacity
           onPress={handlePickAudio}
           style={[
@@ -149,45 +273,14 @@ export default function AudioRecorder() {
           <Text style={styles.buttonText}>Upload File</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={isRecording ? stopRecording : startRecording}
-          style={[
-            styles.button,
-            isFileSelected
-              ? { backgroundColor: '#ccc' }
-              : isRecording
-              ? { backgroundColor: '#d9534f' }
-              : { backgroundColor: '#5cb85c' },
-          ]}
-          disabled={isFileSelected}
-        >
-          <Text style={styles.buttonText}>{isRecording ? 'Stop Recording' : 'Start Recording'}</Text>
-        </TouchableOpacity>
-
-        {recordedAudio && (
-          <View style={{ marginTop: 16 }}>
-            <Text style={styles.label}>Recorded Audio:</Text>
-            <Text>{recordedAudio.uri}</Text>
-            <TouchableOpacity onPress={handleAddWatermark} style={[styles.button, { backgroundColor: '#007bff' }]}>
-              <Text style={styles.buttonText}>Add Watermark</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleDetectWatermarkFromRecording} style={[styles.button, { backgroundColor: '#007bff' }]}>
-              <Text style={styles.buttonText}>Detect Watermark (Recorded)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={resetState} style={[styles.button, { backgroundColor: '#dc3545' }]}>
-              <Text style={styles.buttonText}>Cancel Selection</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {selectedFile && (
           <View style={{ marginTop: 16 }}>
             <Text style={styles.label}>Selected file: {selectedFile.name}</Text>
             <TouchableOpacity onPress={handleAddWatermark} style={[styles.button, { backgroundColor: '#007bff' }]}>
               <Text style={styles.buttonText}>Add Watermark</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleDetectWatermarkFromFile} style={[styles.button, { backgroundColor: '#007bff' }]}>
-              <Text style={styles.buttonText}>Detect Watermark (Uploaded)</Text>
+            <TouchableOpacity onPress={handleDetectWatermark} style={[styles.button, { backgroundColor: '#007bff' }]}>
+              <Text style={styles.buttonText}>Detect Watermark</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={resetState} style={[styles.button, { backgroundColor: '#dc3545' }]}>
               <Text style={styles.buttonText}>Cancel Selection</Text>

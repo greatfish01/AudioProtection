@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import AudioList from '../screens/AudioList';
-import Player from '../screens/Player';
+import Adversarial from '../screens/Adversarial';
 import AIDetectionScreen from '../screens/AIDetectionScreen';
 import VoiceRecordingPage from '../screens/VoiceRecordingPage';
 import AudioPlaybackPage from '../screens/AudioPlaybackPage';
@@ -49,8 +49,8 @@ const TabNavigator = () => {
                 }}
             />
             <Tab.Screen
-                name='Player'
-                component={Player}
+                name='Adversarial'
+                component={Adversarial}
                 options={{
                     tabBarIcon: ({ color, size }) => (
                         <FontAwesome5 name="compact-disc" size={size} color={color} />
